@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@import "@fontsource/big-shoulders/600.css";
+@import "@fontsource/big-shoulders/700.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@theme {
+  --font-display: "Big Shoulders", sans-serif;
+  --font-body: "IBM Plex Sans", sans-serif;
+  --font-data: "IBM Plex Mono", monospace;
+
+  --color-paper: #e4dfd1;
+  --color-panel: #f1ede1;
+  --color-panel-raised: #faf8f2;
+  --color-ink: #23262b;
+  --color-ink-soft: #5b5647;
+  --color-ink-faint: #8a8471;
+  --color-line: #c9c2ae;
+  --color-line-strong: #a89f85;
+
+  --color-navy: #202a33;
+  --color-navy-soft: #2c3944;
+  --color-navy-line: #3d4c58;
+  --color-cream: #ede7d6;
+
+  --color-teal: #2f6b63;
+  --color-teal-dark: #204a44;
+  --color-teal-soft: #dce8e4;
+
+  --color-mustard: #a97318;
+  --color-mustard-dark: #7d5511;
+  --color-mustard-soft: #f1e4c4;
+
+  --color-brick: #9c4a3c;
+  --color-brick-dark: #74362b;
+  --color-brick-soft: #f0dad5;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--color-teal-soft);
+  color: var(--color-teal-dark);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.ledger-rule {
+  border-color: var(--color-line);
+}
+
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-family: var(--font-data);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  padding: 0.15em 0.55em;
+  border-width: 1.5px;
+  border-style: solid;
+  border-radius: 3px;
+  line-height: 1.5;
+  white-space: nowrap;
+}

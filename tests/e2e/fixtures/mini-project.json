@@ -1,0 +1,19 @@
+{
+  "fileFormat": "manifest-tracker",
+  "schemaVersion": 1,
+  "exportedAt": "2026-01-01T00:00:00.000Z",
+  "project": {
+    "schemaVersion": 1,
+    "items": [
+      { "id": "fix-item-1", "name": "Fixture Item One" },
+      { "id": "fix-item-2", "name": "Fixture Item Two" }
+    ],
+    "owners": [{ "id": "fix-owner-1", "name": "Fixture Owner" }],
+    "containers": [],
+    "initialContainers": {
+      "fix-item-1": { "kind": "reserved", "value": "None" },
+      "fix-item-2": { "kind": "reserved", "value": "None" }
+    },
+    "events": []
+  }
+}
