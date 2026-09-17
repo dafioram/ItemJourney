@@ -22,6 +22,14 @@ export function ItemsScreen({ onOpenItem }: { onOpenItem: (itemId: ID) => void }
 
   const final = useMemo(() => resolveFinal(project, timeline), [project, timeline]);
 
+  const referencedItemIds = useMemo(() => {
+    const ids = new Set<ID>();
+    for (const event of project.events) {
+      for (const change of event.changes) ids.add(change.itemId);
+    }
+    return ids;
+  }, [project.events]);
+
   const rows = useMemo(() => {
     const q = filter.trim().toLowerCase();
     return project.items
@@ -124,9 +132,17 @@ export function ItemsScreen({ onOpenItem }: { onOpenItem: (itemId: ID) => void }
                   {f.ownerId ? project.owners.find((o) => o.id === f.ownerId)?.name : '—'}
                 </td>
                 <td className="py-2 pr-3 text-ink-soft">{f.status === 'active' ? containerText(project, f.container) : '—'}</td>
-                <td className="py-2 text-right">
-                  <button onClick={() => onOpenItem(item.id)} className="text-xs font-medium text-teal-dark hover:underline">
+                <td className="py-2 text-right whitespace-nowrap">
+                  <button onClick={() => onOpenItem(item.id)} className="mr-3 text-xs font-medium text-teal-dark hover:underline">
                     Timeline →
+                  </button>
+                  <button
+                    disabled={referencedItemIds.has(item.id)}
+                    onClick={() => dispatch({ type: 'DELETE_ITEM', id: item.id })}
+                    title={referencedItemIds.has(item.id) ? "Can't delete - this item is referenced by one or more events" : 'Delete'}
+                    className="text-xs font-medium text-brick-dark hover:underline disabled:cursor-not-allowed disabled:text-ink-faint disabled:no-underline"
+                  >
+                    Delete
                   </button>
                 </td>
               </tr>

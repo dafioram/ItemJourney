@@ -4,6 +4,7 @@ import type { Container, ContainerRef, EventRecord, ID, Item, Owner, Project } f
 export type Action =
   | { type: 'SET_PROJECT'; project: Project }
   | { type: 'ADD_ITEM'; item: Item; initialContainer: ContainerRef }
+  | { type: 'DELETE_ITEM'; id: ID }
   | { type: 'IMPORT_CSV'; result: CsvParseResult }
   | { type: 'ADD_OWNER'; owner: Owner }
   | { type: 'RENAME_OWNER'; id: ID; name: string }
@@ -25,6 +26,16 @@ export function projectReducer(project: Project, action: Action): Project {
         items: [...project.items, action.item],
         initialContainers: { ...project.initialContainers, [action.item.id]: action.initialContainer },
       };
+
+    case 'DELETE_ITEM': {
+      const initialContainers = { ...project.initialContainers };
+      delete initialContainers[action.id];
+      return {
+        ...project,
+        items: project.items.filter((i) => i.id !== action.id),
+        initialContainers,
+      };
+    }
 
     case 'IMPORT_CSV':
       return applyCsvImport(project, action.result);

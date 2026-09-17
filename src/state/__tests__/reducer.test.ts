@@ -11,6 +11,16 @@ describe('projectReducer', () => {
     expect(next.initialContainers.i1).toEqual(NONE_REF);
   });
 
+  it('DELETE_ITEM removes the item and its initial container entry', () => {
+    let p = createEmptyProject();
+    p = projectReducer(p, { type: 'ADD_ITEM', item: { id: 'i1', name: 'Ball' }, initialContainer: NONE_REF });
+    p = projectReducer(p, { type: 'ADD_ITEM', item: { id: 'i2', name: 'Widget' }, initialContainer: NONE_REF });
+    const next = projectReducer(p, { type: 'DELETE_ITEM', id: 'i1' });
+    expect(next.items).toEqual([{ id: 'i2', name: 'Widget' }]);
+    expect(next.initialContainers.i1).toBeUndefined();
+    expect(next.initialContainers.i2).toEqual(NONE_REF);
+  });
+
   it('IMPORT_CSV delegates to applyCsvImport and merges into existing project', () => {
     let p = createEmptyProject();
     p = projectReducer(p, { type: 'ADD_ITEM', item: { id: 'existing', name: 'Already here' }, initialContainer: NONE_REF });

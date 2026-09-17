@@ -10,6 +10,35 @@ test('adding an item manually shows it in the roster', async ({ page }) => {
   await expect(page.getByTestId('tally-active')).toHaveText('1');
 });
 
+test('deleting an unused item removes it, but a referenced item cannot be deleted', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('new-item-name-input').fill('Mistake Item');
+  await page.getByTestId('add-item-btn').click();
+  await page.getByTestId('new-item-name-input').fill('Keeper Item');
+  await page.getByTestId('add-item-btn').click();
+  await expect(page.getByTestId('tally-total')).toHaveText('2');
+
+  // Reference "Keeper Item" in an event so it's no longer safe to delete.
+  await page.getByTestId('nav-events').click();
+  await page.getByTestId('new-event-btn').click();
+  await page.getByTestId('event-name-input').fill('Touch keeper');
+  await page.getByTestId('add-item-change-btn').click();
+  await page.getByText('Keeper Item', { exact: true }).click();
+  await page.getByTestId('confirm-add-items-btn').click();
+  await page.getByTestId('nav-items').click();
+
+  const keeperRow = page.locator('tr', { has: page.getByText('Keeper Item', { exact: true }) });
+  const keeperDelete = keeperRow.getByRole('button', { name: 'Delete' });
+  await expect(keeperDelete).toBeDisabled();
+
+  const mistakeRow = page.locator('tr', { has: page.getByText('Mistake Item', { exact: true }) });
+  await mistakeRow.getByRole('button', { name: 'Delete' }).click();
+
+  await expect(page.getByText('Mistake Item', { exact: true })).not.toBeVisible();
+  await expect(page.getByText('Keeper Item', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('tally-total')).toHaveText('1');
+});
+
 test('CSV import previews row counts and errors, then commits', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('open-csv-import-btn').click();

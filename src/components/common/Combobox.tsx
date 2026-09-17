@@ -93,7 +93,23 @@ export function Combobox({
   const exactMatch = options.some((o) => o.label.toLowerCase() === text.trim().toLowerCase());
   const canCreate = allowCreate && text.trim() !== '' && !exactMatch;
 
+  /** An exact (case-insensitive) match against the full option list, if the current text has one. */
+  function findExactMatch(): ComboOption | undefined {
+    const q = text.trim().toLowerCase();
+    if (!q) return undefined;
+    return options.find((o) => o.label.toLowerCase() === q);
+  }
+
   function commitHighlighted() {
+    // Typing the full name of an existing option should always commit to that
+    // option, even if arrow-key navigation left a different row highlighted.
+    const exact = findExactMatch();
+    if (exact) {
+      onSelect(exact);
+      setText(exact.label);
+      setOpen(false);
+      return;
+    }
     if (highlight < filtered.length) {
       const opt = filtered[highlight];
       onSelect(opt);
@@ -105,6 +121,24 @@ export function Combobox({
       onCreate(text.trim());
       setOpen(false);
     }
+  }
+
+  /**
+   * Leaving the field (click elsewhere, Tab, etc.) without explicitly clicking
+   * an option or pressing Enter used to silently discard whatever was typed -
+   * confusing when the typed text exactly matched a real option. Now: an exact
+   * match commits on blur too; anything else snaps the text back to the last
+   * committed value, so the field never visually shows an uncommitted change.
+   */
+  function commitOrRevertOnBlur() {
+    const exact = findExactMatch();
+    if (exact) {
+      onSelect(exact);
+      setText(exact.label);
+    } else {
+      setText(value);
+    }
+    setOpen(false);
   }
 
   const showList = open && !disabled && (filtered.length > 0 || canCreate);
@@ -126,6 +160,7 @@ export function Combobox({
           measure();
           setOpen(true);
         }}
+        onBlur={commitOrRevertOnBlur}
         onChange={(e) => {
           setText(e.target.value);
           setOpen(true);
@@ -143,6 +178,7 @@ export function Combobox({
             e.preventDefault();
             commitHighlighted();
           } else if (e.key === 'Escape') {
+            setText(value);
             setOpen(false);
           }
         }}

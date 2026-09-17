@@ -50,6 +50,32 @@ test('create an event, add item changes, bulk-apply an owner, remove a row', asy
   await expect(page.getByText('Test Event', { exact: true })).toBeVisible();
 });
 
+test('typing an owner name that exactly matches commits even without clicking the dropdown option', async ({ page }) => {
+  await loadSampleProject(page);
+  await page.getByTestId('nav-events').click();
+  await page.getByTestId('new-event-btn').click();
+  await page.getByTestId('event-name-input').fill('Blur commit test');
+
+  await page.getByTestId('add-item-change-btn').click();
+  await page.getByText('Passport', { exact: true }).click();
+  await page.getByTestId('confirm-add-items-btn').click();
+
+  const row = page.locator('tr', { has: page.getByText('Passport', { exact: true }) });
+  const ownerInput = row.getByRole('combobox', { name: 'Owner' });
+  await ownerInput.click();
+  await ownerInput.fill('Priya');
+  // Click a different field instead of the dropdown option or Enter - this used
+  // to silently discard the typed value even though it exactly matched an owner.
+  await page.getByTestId('event-name-input').click();
+  await expect(ownerInput).toHaveValue('Priya');
+
+  // Navigate away and back to prove this is really committed to state, not just lingering text in the input.
+  await page.getByText('← Back to events').click();
+  await page.getByText('Blur commit test', { exact: true }).click();
+  const rowAgain = page.locator('tr', { has: page.getByText('Passport', { exact: true }) });
+  await expect(rowAgain.getByRole('combobox', { name: 'Owner' })).toHaveValue('Priya');
+});
+
 test('duplicating and deleting an event', async ({ page }) => {
   await loadSampleProject(page);
   await page.getByTestId('nav-events').click();
