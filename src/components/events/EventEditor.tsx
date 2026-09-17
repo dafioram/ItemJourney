@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../../state/store';
 import { chronological, resolveBeforeIndex } from '../../engine/resolve';
-import { NONE_REF, type ContainerRef, type ID, type ItemChange } from '../../engine/types';
+import { NONE_REF, containerRefKey, type ContainerRef, type ID, type ItemChange } from '../../engine/types';
 import { OwnerCombo } from '../common/OwnerCombo';
 import { ContainerCombo } from '../common/ContainerCombo';
 import { StatusStamp } from '../common/StatusStamp';
@@ -20,6 +20,7 @@ export function EventEditor({ eventId, onDone }: { eventId: ID; onDone: () => vo
   const [showPicker, setShowPicker] = useState(false);
   const [showUnchanged, setShowUnchanged] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<ID>>(new Set());
+  const [showBulkBox, setShowBulkBox] = useState(false);
   const [bulkOwnerId, setBulkOwnerId] = useState<ID | null>(null);
   const [bulkContainer, setBulkContainer] = useState<ContainerRef>(NONE_REF);
   const [confirmCopyFrom, setConfirmCopyFrom] = useState<ID | null>(null);
@@ -39,6 +40,26 @@ export function EventEditor({ eventId, onDone }: { eventId: ID; onDone: () => vo
   }, [project, eventIndex, order.length, timeline]);
 
   const simultaneousEvents = order.filter((e) => e.id !== eventId && event && e.timestamp === event.timestamp);
+
+  // Breakdown of what kind of change each row represents - box reorganizing vs.
+  // ownership handoff vs. both at once - computed before the early return below
+  // to keep hook call order consistent across renders.
+  const breakdown = useMemo(() => {
+    const changes = event?.changes ?? [];
+    let ownerOnly = 0;
+    let boxOnly = 0;
+    let both = 0;
+    for (const c of changes) {
+      const prior = beforeState.get(c.itemId);
+      if (!prior) continue;
+      const ownerChanged = c.ownerId !== prior.ownerId;
+      const containerChanged = containerRefKey(c.container) !== containerRefKey(prior.container);
+      if (ownerChanged && containerChanged) both += 1;
+      else if (ownerChanged) ownerOnly += 1;
+      else if (containerChanged) boxOnly += 1;
+    }
+    return { ownerOnly, boxOnly, both };
+  }, [event, beforeState]);
 
   if (!event) {
     return (
@@ -80,6 +101,10 @@ export function EventEditor({ eventId, onDone }: { eventId: ID; onDone: () => vo
       return { itemId, ownerId: prior.ownerId, container };
     });
     updateChanges([...event!.changes, ...additions]);
+    // Pre-select what was just added: the picker already lets you select "everything
+    // currently in Box X" in one click, so this makes "hand this whole box to someone
+    // new" a single Add -> bulk-set-owner -> Apply flow, with no per-item re-selection.
+    setSelectedRows(new Set(itemIds));
   }
 
   function applyBulkOwner() {
@@ -160,6 +185,16 @@ export function EventEditor({ eventId, onDone }: { eventId: ID; onDone: () => vo
 
         <p className="mt-3 font-data text-xs text-ink-faint">
           {event.changes.length} changing · {unchangedItems.length} unchanged · {project.items.length} total
+          {event.changes.length > 0 && (
+            <>
+              {' · '}
+              {breakdown.boxOnly > 0 && <span className="text-teal-dark">{breakdown.boxOnly} box only</span>}
+              {breakdown.boxOnly > 0 && (breakdown.ownerOnly > 0 || breakdown.both > 0) && ', '}
+              {breakdown.ownerOnly > 0 && <span className="text-mustard-dark">{breakdown.ownerOnly} owner only</span>}
+              {breakdown.ownerOnly > 0 && breakdown.both > 0 && ', '}
+              {breakdown.both > 0 && <span className="text-brick-dark">{breakdown.both} both</span>}
+            </>
+          )}
         </p>
       </div>
 
@@ -182,21 +217,30 @@ export function EventEditor({ eventId, onDone }: { eventId: ID; onDone: () => vo
               Apply
             </Button>
           </div>
-          <div className="flex items-end gap-1.5">
-            <label>
-              <span className="mb-1 block text-xs text-teal-dark">Set box / status</span>
-              <ContainerCombo
-                value={bulkContainer}
-                containers={project.containers}
-                onChange={setBulkContainer}
-                onCreateBox={(n) => ensureContainer(n)!}
-              />
-            </label>
-            <Button variant="secondary" onClick={applyBulkContainer}>
-              Apply
-            </Button>
-          </div>
-          <Button variant="ghost" onClick={() => setSelectedRows(new Set())}>
+          {showBulkBox ? (
+            <div className="flex items-end gap-1.5">
+              <label>
+                <span className="mb-1 block text-xs text-teal-dark">Set box / status</span>
+                <ContainerCombo
+                  value={bulkContainer}
+                  containers={project.containers}
+                  onChange={setBulkContainer}
+                  onCreateBox={(n) => ensureContainer(n)!}
+                />
+              </label>
+              <Button variant="secondary" onClick={applyBulkContainer}>
+                Apply
+              </Button>
+              <button onClick={() => setShowBulkBox(false)} className="text-xs text-teal-dark hover:underline">
+                Hide
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setShowBulkBox(true)} className="text-xs text-teal-dark underline decoration-dotted hover:decoration-solid">
+              + Also set box / status
+            </button>
+          )}
+          <Button variant="ghost" onClick={() => { setSelectedRows(new Set()); setShowBulkBox(false); }}>
             Clear selection
           </Button>
         </div>
@@ -210,7 +254,19 @@ export function EventEditor({ eventId, onDone }: { eventId: ID; onDone: () => vo
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-line-strong text-left text-xs uppercase tracking-wide text-ink-faint">
-              <th className="w-8 py-2" />
+              <th className="w-8 py-2">
+                <input
+                  type="checkbox"
+                  aria-label="Select all items in this event"
+                  title="Select all"
+                  checked={event.changes.length > 0 && event.changes.every((c) => selectedRows.has(c.itemId))}
+                  onChange={() =>
+                    setSelectedRows((s) =>
+                      s.size === event.changes.length ? new Set() : new Set(event.changes.map((c) => c.itemId)),
+                    )
+                  }
+                />
+              </th>
               <th className="py-2 pr-3 font-medium">Item</th>
               <th className="py-2 pr-3 font-medium">Owner</th>
               <th className="py-2 pr-3 font-medium">Box / status</th>
@@ -266,6 +322,7 @@ export function EventEditor({ eventId, onDone }: { eventId: ID; onDone: () => vo
                       <>
                         <StatusStamp status={prior.status} className="mb-1" />
                         <div>{containerText(project, prior.container)}</div>
+                        <div>{prior.ownerId ? project.owners.find((o) => o.id === prior.ownerId)?.name : 'Unassigned'}</div>
                       </>
                     ) : (
                       '—'

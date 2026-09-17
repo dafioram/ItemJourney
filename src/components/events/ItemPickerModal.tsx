@@ -129,6 +129,7 @@ export function ItemPickerModal({
                 <label className="flex items-center gap-2 border-b border-line pb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                   <input
                     type="checkbox"
+                    data-testid={`picker-group-checkbox-${g.key}`}
                     checked={g.items.every((i) => selected.has(i.id))}
                     onChange={() => toggleGroup(g)}
                   />
