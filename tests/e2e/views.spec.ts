@@ -48,6 +48,12 @@ test('matrix view renders a full item x event grid', async ({ page }) => {
   await expect(rows).toHaveCount(11);
   const batteryRow = page.locator('tbody tr', { has: page.getByText('Spare Battery', { exact: true }) });
   await expect(batteryRow.getByText('PENDING').first()).toBeVisible();
+
+  // Switching to the Owner matrix shows resolved owners in the same grid instead of boxes.
+  await page.getByRole('button', { name: 'Owner', exact: true }).click();
+  const passportRow = page.locator('tbody tr', { has: page.getByText('Passport', { exact: true }) });
+  await expect(passportRow.getByText('Johnny').first()).toBeVisible();
+  await expect(passportRow.getByText('Box 1')).not.toBeVisible();
 });
 
 test('flow diagram renders an svg with the expected lanes', async ({ page }) => {

@@ -10,6 +10,9 @@ test('create an event, add item changes, bulk-apply an owner, remove a row', asy
 
   await page.getByTestId('add-item-change-btn').click();
   await expect(page.getByRole('heading', { name: 'Add item changes' })).toBeVisible();
+  // The picker shows each item's current owner - a real name for Watch, "Unassigned" for the never-touched Pending item.
+  await expect(page.locator('label', { hasText: 'Watch' }).getByText('Bill', { exact: true })).toBeVisible();
+  await expect(page.locator('label', { hasText: 'Spare Battery' }).getByText('Unassigned', { exact: true })).toBeVisible();
   await page.getByText('Watch', { exact: true }).click();
   await page.getByText('Spare Battery', { exact: true }).click();
   await page.getByTestId('confirm-add-items-btn').click();

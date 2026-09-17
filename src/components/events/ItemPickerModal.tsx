@@ -8,7 +8,12 @@ import type { ResolvedState } from '../../engine/resolve';
 interface PickerGroup {
   key: string;
   label: string;
-  items: { id: ID; name: string }[];
+  items: { id: ID; name: string; ownerLabel: string }[];
+}
+
+function resolveOwnerLabel(project: Project, ownerId: ID | null): string {
+  if (!ownerId) return 'Unassigned';
+  return project.owners.find((o) => o.id === ownerId)?.name ?? 'Unknown';
 }
 
 function buildGroups(project: Project, beforeState: Map<ID, ResolvedState>, excludeItemIds: Set<ID>): PickerGroup[] {
@@ -31,17 +36,18 @@ function buildGroups(project: Project, beforeState: Map<ID, ResolvedState>, excl
     const state = beforeState.get(item.id);
     if (!state) continue;
     if (state.status === 'removed') continue; // no reactivation - never offered for a new change
+    const ownerLabel = resolveOwnerLabel(project, state.ownerId);
     if (state.status === 'pending') {
-      ensureGroup('pending', 'Pending (not yet introduced)').items.push({ id: item.id, name: item.name });
+      ensureGroup('pending', 'Pending (not yet introduced)').items.push({ id: item.id, name: item.name, ownerLabel });
       continue;
     }
     const container = state.container;
     if (container.kind === 'box') {
       const key = containerRefKey(container);
       const boxName = project.containers.find((c) => c.id === container.containerId)?.name ?? 'Box';
-      ensureGroup(key, boxName).items.push({ id: item.id, name: item.name });
+      ensureGroup(key, boxName).items.push({ id: item.id, name: item.name, ownerLabel });
     } else {
-      ensureGroup('none', 'Unboxed').items.push({ id: item.id, name: item.name });
+      ensureGroup('none', 'Unboxed').items.push({ id: item.id, name: item.name, ownerLabel });
     }
   }
 
@@ -128,11 +134,17 @@ export function ItemPickerModal({
                   />
                   {g.label} <span className="font-data normal-case text-ink-faint">({g.items.length})</span>
                 </label>
-                <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 sm:grid-cols-3">
+                <div className="mt-1 grid grid-cols-1 gap-x-3 gap-y-0.5 sm:grid-cols-2">
                   {g.items.map((i) => (
-                    <label key={i.id} className="flex items-center gap-1.5 rounded-sm px-1 py-1 text-sm hover:bg-panel">
-                      <input type="checkbox" checked={selected.has(i.id)} onChange={() => toggle(i.id)} />
-                      {i.name}
+                    <label
+                      key={i.id}
+                      className="flex items-center justify-between gap-2 rounded-sm px-1 py-1 text-sm hover:bg-panel"
+                    >
+                      <span className="flex items-center gap-1.5 truncate">
+                        <input type="checkbox" checked={selected.has(i.id)} onChange={() => toggle(i.id)} />
+                        {i.name}
+                      </span>
+                      <span className="shrink-0 font-data text-xs text-ink-faint">{i.ownerLabel}</span>
                     </label>
                   ))}
                 </div>

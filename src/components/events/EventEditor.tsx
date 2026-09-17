@@ -74,7 +74,10 @@ export function EventEditor({ eventId, onDone }: { eventId: ID; onDone: () => vo
   function addItems(itemIds: ID[]) {
     const additions: ItemChange[] = itemIds.map((itemId) => {
       const prior = beforeState.get(itemId)!;
-      return { itemId, ownerId: prior.ownerId, container: prior.container };
+      // A Pending item being added to an event is, by definition, becoming active -
+      // default its box to None (unboxed) rather than leaving the redundant Pending value.
+      const container = prior.status === 'pending' ? NONE_REF : prior.container;
+      return { itemId, ownerId: prior.ownerId, container };
     });
     updateChanges([...event!.changes, ...additions]);
   }

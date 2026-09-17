@@ -18,10 +18,16 @@ test('flags a missing owner at activation and jumps back to the event', async ({
   await page.getByTestId('event-name-input').fill('Bring online');
 
   await page.getByTestId('add-item-change-btn').click();
+  // The picker should show the item's current owner (Unassigned for a fresh Pending item).
+  const pickerRow = page.locator('label', { hasText: 'Solo Item' });
+  await expect(pickerRow.getByText('Unassigned', { exact: true })).toBeVisible();
   await page.getByText('Solo Item', { exact: true }).click();
   await page.getByTestId('confirm-add-items-btn').click();
 
   const row = page.locator('tr', { has: page.getByText('Solo Item', { exact: true }) });
+  // A Pending item added to an event defaults to None (unboxed), not a redundant "still Pending".
+  await expect(row.getByRole('combobox', { name: 'Box' })).toHaveValue('None (unboxed)');
+
   const boxCombo = row.getByRole('combobox', { name: 'Box' });
   await boxCombo.click();
   await boxCombo.fill('Shelf A');
